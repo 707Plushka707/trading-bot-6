@@ -38,6 +38,7 @@ class DummyService extends EventEmmiter {
                 callback(JSON.parse(lines[j]));
             }
         }
+        console.log('end');
     }
 }
 
