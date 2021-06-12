@@ -19,11 +19,12 @@ class MartingaleStrategy {
     shorts = new Array();
 
     startTime;
+    firstPostionTime;
 
-    worstPNL;
+    worstPNL = 0;
     closeCount = 0;
     maxMartigaleCount = 0;
-    maxHours = 0;
+    maxMinutes = 0;
 
     //----------------
     
@@ -46,13 +47,14 @@ class MartingaleStrategy {
         this.binanceService.listen((e) => {
             let markPrice = parseFloat(e.markPrice);
             let currentTime = new Date(e.time);
+
             if(!this.startTime) {
                 this.startTime = currentTime;
             }
 
             // open first martingale
             if(this.longs.length == 0 && this.shorts.length == 0) {
-                this.openFirst(markPrice);
+                this.openFirst(markPrice, currentTime);
             }
 
             // check trade value
@@ -63,23 +65,22 @@ class MartingaleStrategy {
 
             if(myPNL >= this.targetPriceDistance * this.positionQuantity) {
 
-                this.saveStats(currentTime);
+                this.saveStats(this.firstPostionTime);
 
                 this.binanceService.closeAll();
-                // this.logClose(currentTime);
+                this.logClose(myPNL, currentTime);
 
-                this.openFirst(markPrice);
+                this.openFirst(markPrice, currentTime);
                 return;
             }
             
             if(markPrice >= this.getNextLongPrice()) {
-                this.open('long', this.positionQuantity);
+                this.openLong(markPrice);
                 return;
             }
             
-
             if(markPrice <= this.getNextShortPrice()) {
-                this.open('short', this.positionQuantity);
+                this.openShort(markPrice);
                 return;
             }
         });
@@ -94,47 +95,52 @@ class MartingaleStrategy {
         if(this.shorts.length + this.longs.length > this.maxMartigaleCount) {
             this.maxMartigaleCount = this.shorts.length + this.longs.length;
         }
-        let hours = this.getDiffDateInHours(currentTime, this.startTime)
-        if(hours > this.maxHours) {
-            this.maxHours = hours;
+        let minutes = this.getDiffDateInMinutes(currentTime, this.firstPostionTime)
+        if(minutes > this.maxMinutes) {
+            this.maxMinutes = minutes;
         }
     }
 
-    getDiffDateInHours = (date1, date2) => {
-        var diff = Math.abs(date1.getTime() - date2.getTime()) / 3600000
+    getDiffDateInMinutes = (date1, date2) => {
+        var diff = Math.abs(date1.getTime() - date2.getTime()) / 3600000 * 60
         return diff;
     }
 
-    logClose = () => {
+    logClose = (pnlDone, currentTime) => {
         console.log("==== CLOSE ALL ====");
+        console.log("= pnlDone : " + pnlDone);
         console.log("= balance : " + this.binanceService.getBalance());
+        console.log("= time elapled = " + this.getDiffDateInMinutes(currentTime, this.startTime));
         console.log("= worstPNL : " + this.worstPNL);
         console.log("= closeCount : " + this.closeCount);
         console.log("= maxMartigaleCount : " + this.maxMartigaleCount);
-        console.log("= maxHours = " + this.maxHours);
+        console.log("= maxMinutes = " + this.maxMinutes);
     }
 
-    openFirst = (markPrice) => {
+    openFirst = (markPrice, currentTime) => {
         this.targetPriceDistance = markPrice * this.targetPercent;
         this.positionQuantity = parseFloat(this.positionAmount / markPrice).toFixed(3);
-        this.openLong();
+        this.firstPostionTime = currentTime;
+        this.openLong(markPrice);
     }
 
-    openLong = () => {
+    openLong = (markPrice) => {
+        console.log("OPEN LONG : " + markPrice);
         this.longs.push(this.binanceService.open('long', this.positionQuantity));
     }
 
-    openShort = () => {
-        this.short.push(this.binanceService.open('short', this.positionQuantity));
+    openShort = (markPrice) => {
+        console.log("OPEN SHORT : " + markPrice);
+        this.shorts.push(this.binanceService.open('short', this.positionQuantity));
     }
 
     getNextLongPrice = () => {
-        const maxLong = this.longs.length == 0 ? this.shorts[this.shorts.length] : this.longs[this.longs.length] ;
+        const maxLong = this.longs.length == 0 ? this.shorts[this.shorts.length - 1].open : this.longs[this.longs.length - 1].open;
         return maxLong + this.targetPriceDistance;
     }
     
     getNextShortPrice = () => {
-        const minShort = this.shorts.length ? this.longs[this.longs.length] : this.shorts[this.shorts.length] ;
+        const minShort = this.shorts.length == 0 ? this.longs[this.longs.length - 1].open : this.shorts[this.shorts.length - 1].open;
         return minShort - this.targetPriceDistance;
     }
 } 

@@ -17,6 +17,8 @@ class DummyService extends EventEmmiter {
     #longs = new Array();
     #shorts = new Array();
 
+    #lastTime = null;
+
 
     //--------------
 
@@ -46,10 +48,19 @@ class DummyService extends EventEmmiter {
             const data = fs.readFileSync(folderPath + '/' + file,{encoding:'utf8', flag:'r'});
             const lines = data.split('\n');
             for(let j = 0; j<lines.length; j++) {
+                
                 if(lines[j].trim() == '') {
                     continue;
                 }
+
                 const pricedetail = JSON.parse(lines[j]);
+
+                if(this.#lastTime) {
+                    if(pricedetail.time <= this.#lastTime) {
+                        continue;
+                    }
+                }
+
                 this.#currentPrice = pricedetail.markPrice;
                 callback(pricedetail);
             }
@@ -58,7 +69,9 @@ class DummyService extends EventEmmiter {
 
     open = (side, quantity) => {
         
-        this.#balance -= this.#currentPrice * quantity;
+        const cost = this.#currentPrice * quantity;
+        this.#balance -= cost;
+        this.#balance -= cost * TRANSACTION_FEE;
 
         if(this.#balance < 0) {
             throw Error('Not enought funds : #balance = ' + this.#balance + ', quantity = ' + quantity);
@@ -70,18 +83,19 @@ class DummyService extends EventEmmiter {
                 quantity
             });
 
-            return this.#longs[this.#longs.length];
+            return this.#longs[this.#longs.length - 1];
         } else {
             this.#shorts.push({
                 open:this.#currentPrice,
                 quantity
             });
 
-            return this.#shorts[this.#shorts.length];
+            return this.#shorts[this.#shorts.length - 1];
         }
     }
 
     closeAll = () => {
+        this.balance -= this.getTransactionFeeOnClose();
         this.#balance += this.getTradeValue();
         this.#longs = new Array();
         this.#shorts = new Array();
@@ -93,6 +107,24 @@ class DummyService extends EventEmmiter {
 
 
     //--------------
+
+    getTransactionFeeOnClose = () => {
+        
+        let fee = 0;
+
+        for(let i = 0; i< this.#longs.length; i++) {
+            let longCurrentValue = (this.#longs[i].quantity) * this.#currentPrice;
+            fee += longCurrentValue * TRANSACTION_FEE;
+        }
+
+        for(let i = 0; i< this.#shorts.length; i++) {
+            let shortCurrentValue = (this.#shorts[i].quantity) * this.#currentPrice;
+            fee += shortCurrentValue * TRANSACTION_FEE;
+        }
+
+        return fee;
+
+    }
 
     getTradeValue = () => {
         

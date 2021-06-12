@@ -9,6 +9,7 @@ const start = async () => {
     
     let strategy = new MartingaleStrategy({symbol:CONFIG.symbol});
     strategy.start();
+    console.log("end");
 
 }
 
