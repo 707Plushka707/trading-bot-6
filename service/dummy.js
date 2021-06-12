@@ -142,7 +142,7 @@ class DummyService extends EventEmmiter {
         let tradeValue = 0;
 
         for(let i = 0; i< this.#longs.length; i++) {
-            let longOpenValue = (this.#longs[i].quantity * this.#currentPrice) / this.#leverage;
+            let longOpenValue = (this.#longs[i].quantity * this.#longs[i].open) / this.#leverage;
             tradeValue += longOpenValue;
         }
 
