@@ -7,7 +7,7 @@ const CONFIG = {
 
 const start = async () => {
     
-    let strategy = new MartingaleStrategy({symbol:CONFIG.symbol});
+    let strategy = new MartingaleStrategy({symbol:CONFIG.symbol, leverage:10});
     strategy.start();
     console.log("end");
 

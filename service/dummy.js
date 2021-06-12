@@ -13,6 +13,7 @@ class DummyService extends EventEmmiter {
 
     #symbol;
     #balance;
+    #leverage;
 
     #longs = new Array();
     #shorts = new Array();
@@ -26,6 +27,7 @@ class DummyService extends EventEmmiter {
         super();
         this.#symbol = params.symbol;
         this.#balance = params.balance ? params.balance : 10000;
+        this.#leverage = params.leverage ? params.balanleveragece : 1;
     }
 
     listen = (callback, startTime) => {
@@ -62,6 +64,10 @@ class DummyService extends EventEmmiter {
                 }
 
                 this.#currentPrice = pricedetail.markPrice;
+                const pnl = this.getPNL();
+                if(pnl > this.getBalance()) {
+                    throw new Error('Trade Loss > Balance ! balance : ' + this.getBalance() + ', pnl : ' + pnl);
+                }
                 callback(pricedetail);
             }
         }
@@ -70,8 +76,9 @@ class DummyService extends EventEmmiter {
     open = (side, quantity) => {
         
         const cost = this.#currentPrice * quantity;
-        this.#balance -= cost;
         this.#balance -= cost * TRANSACTION_FEE;
+
+        this.#balance -= cost / this.#leverage;
 
         if(this.#balance < 0) {
             throw Error('Not enought funds : #balance = ' + this.#balance + ', quantity = ' + quantity);
@@ -80,14 +87,14 @@ class DummyService extends EventEmmiter {
         if(side.toUpperCase() == 'LONG') {
             this.#longs.push({
                 open:this.#currentPrice,
-                quantity
+                quantity: quantity
             });
 
             return this.#longs[this.#longs.length - 1];
         } else {
             this.#shorts.push({
                 open:this.#currentPrice,
-                quantity
+                quantity: quantity
             });
 
             return this.#shorts[this.#shorts.length - 1];
@@ -103,6 +110,10 @@ class DummyService extends EventEmmiter {
 
     getBalance = () => {
         return this.#balance;
+    }
+
+    getLeverage = () => {
+        return this.#leverage;
     }
 
 
@@ -131,15 +142,16 @@ class DummyService extends EventEmmiter {
         let tradeValue = 0;
 
         for(let i = 0; i< this.#longs.length; i++) {
-            let longOpenValue = (this.#longs[i].quantity) * this.#currentPrice;
+            let longOpenValue = (this.#longs[i].quantity * this.#currentPrice) / this.#leverage;
             tradeValue += longOpenValue;
         }
 
         for(let i = 0; i< this.#shorts.length; i++) {
-            let shortOpenValue = (this.#shorts[i].quantity) * this.#shorts[i].open;
-            let shortCurrentValue = (this.#shorts[i].quantity) * this.#currentPrice;
-            tradeValue += shortOpenValue + shortOpenValue - shortCurrentValue;
+            let shortOpenValue = (this.#shorts[i].quantity * this.#shorts[i].open) / this.#leverage;
+            tradeValue += shortOpenValue;
         }
+
+        tradeValue += this.getPNL();
 
         return tradeValue;
 
@@ -149,18 +161,18 @@ class DummyService extends EventEmmiter {
         
         let result = 0;
         for(let i = 0; i< this.#longs.length; i++) {
-            let longOpenValue = (this.#longs[i].quantity) * this.#longs[i].open;
-            let longCurrentValue = (this.#longs[i].quantity) * this.#currentPrice;
+            let longOpenValue = (this.#longs[i].quantity * this.#longs[i].open) / this.#leverage;
+            let longCurrentValue = (this.#longs[i].quantity * this.#currentPrice) / this.#leverage;
             result += longCurrentValue - longOpenValue;
         }
 
         for(let i = 0; i< this.#shorts.length; i++) {
-            let shortOpenValue = (this.#shorts[i].quantity) * this.#shorts[i].open;
-            let shortCurrentValue = (this.#shorts[i].quantity) * this.#currentPrice;
+            let shortOpenValue = (this.#shorts[i].quantity * this.#shorts[i].open) / this.#leverage;
+            let shortCurrentValue = (this.#shorts[i].quantity * this.#currentPrice) / this.#leverage;
             result += shortOpenValue - shortCurrentValue;
         }
 
-        return result;
+        return result * this.#leverage;
 
     }
 

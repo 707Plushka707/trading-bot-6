@@ -36,7 +36,7 @@ class MartingaleStrategy {
         this.binanceService = new DummyService({symbol:this.symbol});
         
         const balance = this.binanceService.getBalance();
-        this.positionAmount = balance * this.positionPercent;
+        this.positionAmount = balance * this.positionPercent * this.binanceService.getLeverage();
     }
     
     //----------------
