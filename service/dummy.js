@@ -20,14 +20,13 @@ class DummyService extends EventEmmiter {
 
     #lastTime = null;
 
-
     //--------------
 
     constructor(params) {
         super();
         this.#symbol = params.symbol;
-        this.#balance = params.balance ? params.balance : 10000;
-        this.#leverage = params.leverage ? params.balanleveragece : 1;
+        this.#balance = params.balance ? params.balance : 1000;
+        this.#leverage = params.leverage ? params.balanleveragece : 10;
     }
 
     listen = (callback, startTime) => {

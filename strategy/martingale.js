@@ -25,6 +25,7 @@ class MartingaleStrategy {
     closeCount = 0;
     maxMartigaleCount = 0;
     maxMinutes = 0;
+    tradeCount = 0;
 
     //----------------
     
@@ -65,10 +66,7 @@ class MartingaleStrategy {
 
             if(myPNL >= this.targetPriceDistance * this.positionQuantity) {
 
-                this.saveStats(this.firstPostionTime);
-
-                this.binanceService.closeAll();
-                this.logClose(myPNL, currentTime);
+                this.closeAll(myPNL, currentTime);
 
                 this.openFirst(markPrice, currentTime);
                 return;
@@ -90,6 +88,15 @@ class MartingaleStrategy {
 
     //----------------
 
+
+    closeAll = (myPNL, currentTime) => {
+        this.saveStats(currentTime);
+        this.binanceService.closeAll();
+        this.longs = new Array();
+        this.shorts = new Array();
+        this.logClose(myPNL, currentTime);
+    }
+
     saveStats = (currentTime) => {
         this.closeCount++;
         if(this.shorts.length + this.longs.length > this.maxMartigaleCount) {
@@ -107,14 +114,18 @@ class MartingaleStrategy {
     }
 
     logClose = (pnlDone, currentTime) => {
+        console.log("===================");
         console.log("==== CLOSE ALL ====");
+        console.log("===================");
         console.log("= pnlDone : " + pnlDone);
         console.log("= balance : " + this.binanceService.getBalance());
-        console.log("= time elapled = " + this.getDiffDateInMinutes(currentTime, this.startTime));
+        console.log("= time elapled = " + this.getDiffDateInMinutes(currentTime, this.startTime) / 60);
+        console.log("= max hours to close = " + this.maxMinutes / 60);
         console.log("= worstPNL : " + this.worstPNL);
         console.log("= closeCount : " + this.closeCount);
         console.log("= maxMartigaleCount : " + this.maxMartigaleCount);
-        console.log("= maxMinutes = " + this.maxMinutes);
+        console.log("= tradeCount = " + this.tradeCount);
+        console.log("===================");
     }
 
     openFirst = (markPrice, currentTime) => {
@@ -125,11 +136,13 @@ class MartingaleStrategy {
     }
 
     openLong = (markPrice) => {
+        this.tradeCount++;
         console.log("OPEN LONG : " + markPrice);
         this.longs.push(this.binanceService.open('long', this.positionQuantity));
     }
 
     openShort = (markPrice) => {
+        this.tradeCount++;
         console.log("OPEN SHORT : " + markPrice);
         this.shorts.push(this.binanceService.open('short', this.positionQuantity));
     }

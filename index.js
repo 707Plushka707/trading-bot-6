@@ -2,7 +2,7 @@ require('dotenv').config();
 const MartingaleStrategy = require('./strategy/martingale');
 
 const CONFIG = {
-    symbol: 'BTCUSDT'
+    symbol: 'BNBUSDT'
 }
 
 const start = async () => {
