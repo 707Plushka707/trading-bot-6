@@ -140,7 +140,10 @@ class MartingaleStrategy {
 
     openFirst = (markPrice, currentTime) => {
         this.targetPriceDistance = markPrice * this.targetPercent;
-        // this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
+
+        // comment out to stop exponentielle
+        this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
+        
         this.positionQuantity = parseFloat(this.positionAmount / markPrice).toFixed(3);
         console.log(" ** positionAmount " + this.positionAmount)
         console.log(" ** positionQuantity " + this.positionQuantity)
