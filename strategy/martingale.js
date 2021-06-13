@@ -33,9 +33,15 @@ class MartingaleStrategy {
     constructor(params) {
         this.symbol = params.symbol;
         this.positionPercent = params.positionPercent ? params.positionPercent : 0.01;
-        this.targetPercent = params.targetPercent ? params.targetPercent : 0.005;
+        this.targetPercent = params.targetPercent ? params.targetPercent : 0.5;
         
-        this.binanceService = new DummyService({symbol:this.symbol});
+        let binanceParams = {};
+        binanceParams.symbol = this.symbol;
+        if(params.leverage) {
+            binanceParams.leverage = params.leverage;
+        }
+
+        this.binanceService = new DummyService(binanceParams);
         
         if(params.balance) {
             this.binanceService.setBalance(params.balance);
@@ -68,7 +74,7 @@ class MartingaleStrategy {
                 this.worstPNL = myPNL;
             }
 
-            if(myPNL >= this.targetPriceDistance * this.positionQuantity) {
+            if(myPNL >= this.targetPriceDistance * (this.positionQuantity)) {
 
                 this.closeAll(myPNL, currentTime);
 
@@ -134,9 +140,12 @@ class MartingaleStrategy {
 
     openFirst = (markPrice, currentTime) => {
         this.targetPriceDistance = markPrice * this.targetPercent;
-        this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
-        console.log(" ** positionAmount " + this.positionAmount)
+        // this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
         this.positionQuantity = parseFloat(this.positionAmount / markPrice).toFixed(3);
+        console.log(" ** positionAmount " + this.positionAmount)
+        console.log(" ** positionQuantity " + this.positionQuantity)
+        console.log(" ** targetPercent " + this.targetPercent)
+        console.log(" ** targetPriceDistance " + this.targetPriceDistance)
         this.firstPostionTime = currentTime;
         this.openLong(markPrice);
     }
@@ -155,12 +164,12 @@ class MartingaleStrategy {
 
     getNextLongPrice = () => {
         const maxLong = this.longs.length == 0 ? this.shorts[this.shorts.length - 1].open : this.longs[this.longs.length - 1].open;
-        return maxLong + this.targetPriceDistance;
+        return maxLong + (this.targetPriceDistance);
     }
     
     getNextShortPrice = () => {
         const minShort = this.shorts.length == 0 ? this.longs[this.longs.length - 1].open : this.shorts[this.shorts.length - 1].open;
-        return minShort - this.targetPriceDistance;
+        return minShort - (this.targetPriceDistance);
     }
 } 
 

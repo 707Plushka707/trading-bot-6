@@ -1,7 +1,7 @@
 const fs = require('fs');
 const EventEmmiter = require('events');
 
-const folderPath = `D:/trading data/output`;
+const folderPath = `D:/trading data/output4`;
 
 const TRANSACTION_FEE = 0.0004;
 
