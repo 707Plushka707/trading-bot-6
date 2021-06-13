@@ -1,5 +1,6 @@
 const DummyService = require('../service/dummy.js');
 const DemoService = require('../service/demo');
+const fs = require('fs');
 
 class MartingaleStrategy {
     
@@ -56,6 +57,7 @@ class MartingaleStrategy {
     start = () => {
         let line = 0;
         this.binanceService.listen((e) => {
+            
             let markPrice = parseFloat(e.markPrice);
             let currentTime = new Date(e.time);
 
@@ -65,6 +67,11 @@ class MartingaleStrategy {
 
             // open first martingale
             if(this.longs.length == 0 && this.shorts.length == 0) {
+
+                if(this.checkStop()) {
+                    return;
+                }
+
                 this.openFirst(markPrice, currentTime);
             }
 
@@ -77,6 +84,10 @@ class MartingaleStrategy {
             if(myPNL >= this.targetPriceDistance * (this.positionQuantity)) {
 
                 this.closeAll(myPNL, currentTime);
+
+                if(this.checkStop()) {
+                    return;
+                }
 
                 this.openFirst(markPrice, currentTime);
                 return;
@@ -97,6 +108,21 @@ class MartingaleStrategy {
 
 
     //----------------
+
+    checkStop = () => 
+    {
+        const commandFilePath = 'commant.txt';
+        if(fs.existsSync(commandFilePath)){
+            
+            const data = fs.readFileSync(commandFilePath,{encoding:'utf8', flag:'r'});
+            const lines = data.split('\n');
+            if(lines.length > 0) {
+                return (lines[0] == 'stop');
+            }
+        }
+        return false;
+
+    }
 
 
     closeAll = (myPNL, currentTime) => {

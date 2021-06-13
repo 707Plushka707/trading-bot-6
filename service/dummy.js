@@ -29,7 +29,7 @@ class DummyService extends EventEmmiter {
         this.#leverage = params.leverage ? params.leverage : 100;
     }
 
-    listen = (callback, startTime) => {
+    listen = async (callback, startTime) => {
         const fileList = fs.readdirSync(folderPath);
         for(let i = 0; i<fileList.length; i++) {
 
