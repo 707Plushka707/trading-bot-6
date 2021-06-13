@@ -1,4 +1,5 @@
 const DummyService = require('../service/dummy.js');
+const DemoService = require('../service/demo');
 
 class MartingaleStrategy {
     
@@ -36,8 +37,11 @@ class MartingaleStrategy {
         
         this.binanceService = new DummyService({symbol:this.symbol});
         
-        const balance = this.binanceService.getBalance();
-        this.positionAmount = balance * this.positionPercent * this.binanceService.getLeverage();
+        if(params.balance) {
+            this.binanceService.setBalance(params.balance);
+        }
+
+        this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
     }
     
     //----------------
@@ -130,6 +134,8 @@ class MartingaleStrategy {
 
     openFirst = (markPrice, currentTime) => {
         this.targetPriceDistance = markPrice * this.targetPercent;
+        this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
+        console.log(" ** positionAmount " + this.positionAmount)
         this.positionQuantity = parseFloat(this.positionAmount / markPrice).toFixed(3);
         this.firstPostionTime = currentTime;
         this.openLong(markPrice);
@@ -137,14 +143,14 @@ class MartingaleStrategy {
 
     openLong = (markPrice) => {
         this.tradeCount++;
-        console.log("OPEN LONG : " + markPrice);
         this.longs.push(this.binanceService.open('long', this.positionQuantity));
+        console.log("OPEN LONG : " + markPrice + ", next : " + this.getNextLongPrice() + ", pnl : " + this.binanceService.getPNL());
     }
 
     openShort = (markPrice) => {
         this.tradeCount++;
-        console.log("OPEN SHORT : " + markPrice);
         this.shorts.push(this.binanceService.open('short', this.positionQuantity));
+        console.log("OPEN SHORT : " + markPrice + ", next : " + this.getNextShortPrice() + ", pnl : " + this.binanceService.getPNL());
     }
 
     getNextLongPrice = () => {

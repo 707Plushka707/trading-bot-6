@@ -1,11 +1,15 @@
-const fs = require('fs');
-const EventEmmiter = require('events');
-
-const folderPath = `D:/trading data/output`;
+const Binance = require('node-binance-api');
 
 const TRANSACTION_FEE = 0.0004;
 
-class DummyService extends EventEmmiter {
+const binance = new Binance().options({
+    APIKEY: process.env.API_KEY,
+    APISECRET: process.env.API_SECRET,
+    hedgeMode: true,
+    test: process.env.TEST_MODE == 1 ? true : false
+});
+
+class DemoService {
 
     #currentPrice;
 
@@ -23,13 +27,35 @@ class DummyService extends EventEmmiter {
     //--------------
 
     constructor(params) {
-        super();
         this.#symbol = params.symbol;
         this.#balance = params.balance ? params.balance : 1000;
-        this.#leverage = params.leverage ? params.leverage : 100;
+        this.#leverage = params.leverage ? params.balanleveragece : 10;
+    }
+
+    convertToMarkPrice = (data) => {
+        // const filteredData = data.filter(o => o.s == this.#symbol)[0];
+    
+        const m = {};
+            m.time= new Date(data.E)
+            m.symbol= data.s
+            m.markPrice= data.p
+            m.indexPrice= data.i
+            m.settlePrice= data.P
+            m.fundingRate= data.r
+            m.nextFundingTime= new Date(data.T)
+        
+        return m;
     }
 
     listen = (callback, startTime) => {
+        
+        const websocketname = this.#symbol.toLowerCase() + '@markPrice@1s';
+        return binance.futuresSubscribe(websocketname, (e) => {
+            const data = this.convertToMarkPrice(e);
+            console.log(data.markPrice)
+            callback(data);
+        });
+
         const fileList = fs.readdirSync(folderPath);
         for(let i = 0; i<fileList.length; i++) {
 
@@ -111,10 +137,6 @@ class DummyService extends EventEmmiter {
         return this.#balance;
     }
 
-    setBalance = (balance) => {
-        this.#balance = balance;
-    }
-
     getLeverage = () => {
         return this.#leverage;
     }
@@ -181,4 +203,4 @@ class DummyService extends EventEmmiter {
 
 }
 
-module.exports = DummyService
+module.exports = DemoService
