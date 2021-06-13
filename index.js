@@ -8,11 +8,19 @@ const CONFIG = {
     targetPercent:0.005
 }
 
+const simulation = () => {
+    return new Promise((resolve, reject) => {
+        let strategy = new MartingaleStrategy(CONFIG);
+        strategy.start();
+        resolve();
+    });
+}
+
+  
 const start = async () => {
-    
-    let strategy = new MartingaleStrategy(CONFIG);
-    strategy.start();
-    console.log("end");
+
+    simulation().then(() => console.log('end 1'));
+    console.log("end 2");
 
 }
 
