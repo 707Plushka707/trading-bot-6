@@ -1,6 +1,6 @@
+const fs = require('fs');
+const EventEmmiter = require('events');
 const Binance = require('node-binance-api');
-
-const TRANSACTION_FEE = 0.0004;
 
 const binance = new Binance().options({
     APIKEY: process.env.API_KEY,
@@ -9,7 +9,9 @@ const binance = new Binance().options({
     test: process.env.TEST_MODE == 1 ? true : false
 });
 
-class DemoService {
+const TRANSACTION_FEE = 0.0004;
+
+class DemoService extends EventEmmiter {
 
     #currentPrice;
 
@@ -27,9 +29,10 @@ class DemoService {
     //--------------
 
     constructor(params) {
+        super();
         this.#symbol = params.symbol;
         this.#balance = params.balance ? params.balance : 1000;
-        this.#leverage = params.leverage ? params.balanleveragece : 10;
+        this.#leverage = params.leverage ? params.leverage : 100;
     }
 
     convertToMarkPrice = (data) => {
@@ -47,55 +50,32 @@ class DemoService {
         return m;
     }
 
-    listen = (callback, startTime) => {
+    handleFuturesSocketError =  ( error ) => {
+        Binance.options.log( 'XXXX Futures WebSocket error: ' + this.endpoint +
+          ( error.code ? ' (' + error.code + ')' : '' ) +
+          ( error.message ? ' ' + error.message : '' ) );
+    };
+
+    listen = (callback) => {
         
         const websocketname = this.#symbol.toLowerCase() + '@markPrice@1s';
-        return binance.futuresSubscribe(websocketname, (e) => {
+
+        const websocket = binance.futuresSubscribe(websocketname, (e) => {
             const data = this.convertToMarkPrice(e);
-            console.log(data.markPrice)
+            this.#currentPrice = data.markPrice;
+
+            let log = data.time + ' - ';
+            log += 'price : ' + data.markPrice + ' - ';
+            log += 'pnl : ' + this.getPNL() + ' - ';
+
+            console.log(log);
+
             callback(data);
         });
 
-        const fileList = fs.readdirSync(folderPath);
-        for(let i = 0; i<fileList.length; i++) {
+        console.log('end listen');
 
-            const file = fileList[i];
-            const subNames = file.replace('.txt', '').split('_');
-            if(subNames[1] != this.#symbol) {
-                continue;
-            }
-    
-            const startTimeRead = new Date(...subNames[2].split('-'));
-            if(startTime) {
-                if(startTime > startTimeRead) {
-                    continue;
-                }
-            }
-
-            const data = fs.readFileSync(folderPath + '/' + file,{encoding:'utf8', flag:'r'});
-            const lines = data.split('\n');
-            for(let j = 0; j<lines.length; j++) {
-                
-                if(lines[j].trim() == '') {
-                    continue;
-                }
-
-                const pricedetail = JSON.parse(lines[j]);
-
-                if(this.#lastTime) {
-                    if(pricedetail.time <= this.#lastTime) {
-                        continue;
-                    }
-                }
-
-                this.#currentPrice = pricedetail.markPrice;
-                const pnl = this.getPNL();
-                if(pnl > this.getBalance()) {
-                    throw new Error('Trade Loss > Balance ! balance : ' + this.getBalance() + ', pnl : ' + pnl);
-                }
-                callback(pricedetail);
-            }
-        }
+        return websocket;
     }
 
     open = (side, quantity) => {
@@ -135,6 +115,10 @@ class DemoService {
 
     getBalance = () => {
         return this.#balance;
+    }
+
+    setBalance = (balance) => {
+        this.#balance = balance;
     }
 
     getLeverage = () => {

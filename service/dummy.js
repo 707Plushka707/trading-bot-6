@@ -70,6 +70,7 @@ class DummyService extends EventEmmiter {
                 callback(pricedetail);
             }
         }
+        console.log("end dummy service");
     }
 
     open = (side, quantity) => {

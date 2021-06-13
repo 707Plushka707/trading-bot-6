@@ -1,5 +1,7 @@
 const DummyService = require('../service/dummy.js');
 const DemoService = require('../service/demo');
+const BinanceService = require('../service/binance');
+
 const fs = require('fs');
 
 class MartingaleStrategy {
@@ -42,10 +44,20 @@ class MartingaleStrategy {
             binanceParams.leverage = params.leverage;
         }
 
-        this.binanceService = new DummyService(binanceParams);
+        if(params.mode == 'binance') {
+            this.binanceService = new BinanceService(binanceParams);
+        } else if (params.mode == 'demo') {
+            this.binanceService = new DemoService(binanceParams);
         
-        if(params.balance) {
-            this.binanceService.setBalance(params.balance);
+            if(params.balance) {
+                this.binanceService.setBalance(params.balance);
+            }
+        } else {
+            this.binanceService = new DummyService(binanceParams);
+        
+            if(params.balance) {
+                this.binanceService.setBalance(params.balance);
+            }
         }
 
         this.positionAmount = this.binanceService.getBalance() * this.positionPercent * this.binanceService.getLeverage();
@@ -103,6 +115,8 @@ class MartingaleStrategy {
                 return;
             }
         });
+
+        console.log("end martingale strategy");
 
     }
 
