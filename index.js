@@ -2,11 +2,11 @@ require('dotenv').config();
 const MartingaleStrategy = require('./strategy/martingale');
 
 const CONFIG = {
-    symbol: 'BELUSDT',
-    leverage:100, 
+    symbol: 'BTCUSDT',
+    leverage:10, 
     balance:1000,
     targetPercent:0.005,
-    mode:'demo'
+    mode:'dummy'
 }
 
 const executeStrategy = () => {

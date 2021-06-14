@@ -1,10 +1,11 @@
 const DummyService = require('../service/dummy.js');
 const DemoService = require('../service/demo');
 const BinanceService = require('../service/binance');
+const EventEmmiter = require('events');
 
 const fs = require('fs');
 
-class MartingaleStrategy {
+class MartingaleStrategy extends EventEmmiter {
     
     binanceService;
 
@@ -34,6 +35,7 @@ class MartingaleStrategy {
     //----------------
     
     constructor(params) {
+        super();
         this.symbol = params.symbol;
         this.positionPercent = params.positionPercent ? params.positionPercent : 0.01;
         this.targetPercent = params.targetPercent ? params.targetPercent : 0.5;
@@ -42,6 +44,7 @@ class MartingaleStrategy {
         binanceParams.symbol = this.symbol;
         if(params.leverage) {
             binanceParams.leverage = params.leverage;
+            binanceParams.strategy = this;
         }
 
         if(params.mode == 'binance') {
@@ -81,10 +84,13 @@ class MartingaleStrategy {
             if(this.longs.length == 0 && this.shorts.length == 0) {
 
                 if(this.checkStop()) {
+                    this.emit('endprice');
                     return;
                 }
 
                 this.openFirst(markPrice, currentTime);
+                this.emit('endprice');
+                return;
             }
 
             // check trade value
@@ -98,25 +104,31 @@ class MartingaleStrategy {
                 this.closeAll(myPNL, currentTime);
 
                 if(this.checkStop()) {
+                    this.emit('endprice');
                     return;
                 }
 
                 this.openFirst(markPrice, currentTime);
+                this.emit('endprice');
                 return;
             }
             
             if(markPrice >= this.getNextLongPrice()) {
                 this.openLong(markPrice);
+                this.emit('endprice');
                 return;
             }
             
             if(markPrice <= this.getNextShortPrice()) {
                 this.openShort(markPrice);
+                this.emit('endprice');
                 return;
             }
+            
+            this.emit('endprice');
         });
 
-        console.log("end martingale strategy");
+        // console.log("end martingale strategy");
 
     }
 
@@ -145,6 +157,17 @@ class MartingaleStrategy {
         this.longs = new Array();
         this.shorts = new Array();
         this.logClose(myPNL, currentTime);
+        this.emit('close', {
+            symbol:this.symbol,
+            pnlDone:myPNL,
+            balance:this.binanceService.getBalance(),
+            timeElapsed:this.getDiffDateInMinutes(currentTime, this.startTime) / 60,
+            maxHourClose:this.maxMinutes / 60,
+            worstPNL:this.worstPNL,
+            closeCount:this.closeCount,
+            maxMartigaleCount:this.maxMartigaleCount,
+            tradeCount:this.tradeCount,
+        });
     }
 
     saveStats = (currentTime) => {
