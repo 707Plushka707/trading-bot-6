@@ -27,6 +27,10 @@ class DummyService extends EventEmmiter {
         this.#symbol = params.symbol;
         this.#balance = params.balance ? params.balance : 1000;
         this.#leverage = params.leverage ? params.leverage : 100;
+
+        if(params.balance) {
+            this.setBalance(params.balance);
+        }
     }
 
     listen = async (callback, startTime) => {

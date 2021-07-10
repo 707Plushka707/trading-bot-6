@@ -1,17 +1,21 @@
 require('dotenv').config();
+const MartingaleSyncStrategy = require('./strategy/martingaleasync');
 const MartingaleStrategy = require('./strategy/martingale');
 
 const CONFIG = {
-    symbol: 'BTCUSDT',
+    symbol: 'ETHUSDT',
     leverage:10, 
     balance:1000,
     targetPercent:0.005,
-    mode:'dummy'
+    mode:'binance'
 }
 
 const executeStrategy = () => {
-    return new Promise((resolve, reject) => {
-        let strategy = new MartingaleStrategy(CONFIG);
+    return new Promise(async (resolve, reject) => {
+        let strategy = new MartingaleSyncStrategy(CONFIG);
+        if(strategy.init) {
+            await strategy.init();
+        }
         strategy.start();
         resolve();
     });

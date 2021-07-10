@@ -1,6 +1,7 @@
 const fs = require('fs');
 const EventEmmiter = require('events');
 const Binance = require('node-binance-api');
+const {sleep} = require('../sleep');
 
 const binance = new Binance().options({
     APIKEY: process.env.API_KEY,
@@ -33,6 +34,10 @@ class DemoService extends EventEmmiter {
         this.#symbol = params.symbol;
         this.#balance = params.balance ? params.balance : 1000;
         this.#leverage = params.leverage ? params.leverage : 100;
+        
+        if(params.balance) {
+            this.setBalance(params.balance);
+        }
     }
 
     convertToMarkPrice = (data) => {
@@ -70,10 +75,10 @@ class DemoService extends EventEmmiter {
 
             console.log(log);
 
-            callback(data);
+            if(callback) {
+                callback(data);
+            }
         });
-
-        console.log('end listen');
 
         return websocket;
     }
