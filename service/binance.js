@@ -12,6 +12,7 @@ class BinanceService extends EventEmmiter {
 
     #params;
     #symbol;
+    #websocket;
 
     #pricePrecision; // number of digit
     #lotSize; // min qty
@@ -36,30 +37,25 @@ class BinanceService extends EventEmmiter {
         return m;
     }
 
-
-    listen2(websocketname, callback) {
-        return binance.futuresSubscribe(this.#symbol + '@' + websocketname, callback);
-    }
-
     listen = (callback) => {
         
         const websocketname = this.#symbol.toLowerCase() + '@markPrice@1s';
 
-        const websocket = binance.futuresSubscribe(websocketname, (e) => {
+        this.#websocket = binance.futuresSubscribe(websocketname, (e) => {
             const data = this.convertToMarkPrice(e);
 
-            let log = data.time + ' - ';
-            log += 'price : ' + data.markPrice + ' - ';
+            // let log = data.time + ' - ';
+            // log += 'price : ' + data.markPrice + ' - ';
             // log += 'pnl : ' + this.getPNL() + ' - ';
 
-            console.log(log);
+            // console.log(log);
 
             if(callback) {
                 callback(data);
             }
         });
 
-        return websocket;
+        return this.#websocket;
     }
 
     //---------------------------------
@@ -78,10 +74,15 @@ class BinanceService extends EventEmmiter {
     initMarketData = async () => {
 
         const result = await binance.futuresExchangeInfo();
-        const data = result.symbols.filter(s => s.symbol == "AXSUSDT")[0];
+        const data = result.symbols.filter(s => s.symbol == this.#symbol)[0];
 
-        this.#pricePrecision = data.pricePrecision;
-        this.#lotSize = data.filters.filter(f => f.filterType == "MARKET_LOT_SIZE")[0].stepSize;
+        console.log(data);
+
+        this.#pricePrecision = parseInt(data.pricePrecision);
+        this.#lotSize = parseFloat(data.filters.filter(f => f.filterType == "MARKET_LOT_SIZE")[0].stepSize);
+
+        console.log(`Precision : ${this.#pricePrecision}`);
+        console.log(`LotSize : ${this.#lotSize}`);
 
     }
 
@@ -150,24 +151,51 @@ class BinanceService extends EventEmmiter {
         return result.filter(i => i.asset == "USDT")[0].crossUnPnl;
     }
 
+    getBalanceAndPnl =  async () => {
+        const result = await binance.futuresBalance();
+        const asset = result.filter(i => i.asset == "USDT")[0];
+        return {
+            balance:asset.availableBalance,
+            pnl:asset.crossUnPnl
+        } 
+    }
+
 
     //------------------------
     //------- Order ----------
     //------------------------
+        precision = (num) => {
+            if(Math.floor(num.valueOf()) === num.valueOf()) return 0;
+            return num.toString().split(".")[1].length || 0; 
+        }
+
+         precise = (num, precision) => {
+            const mutiplier = 10 ** (precision);
+            return Math.floor(num * mutiplier) / mutiplier
+        }
+
+    getFixedQuantity = (quantity) => {
+        const p = this.precision(this.#lotSize);
+        const res = this.precise(quantity, p);
+        return res;
+    }
     
     open = async (side, quantity, price) => {
+        let result;
+        const fixedQuantity = this.getFixedQuantity(quantity);
         if(side.toUpperCase() == 'LONG') {
-            let res = await binance.futuresMarketBuy(this.#symbol.toLowerCase(), quantity);
-            return  {
-                open:price,
-                quantity
-            }
+            result = await binance.futuresMarketBuy(this.#symbol.toLowerCase(), fixedQuantity);
         } else if(side.toUpperCase() == 'SHORT') {
-            let res = await binance.futuresMarketSell(this.#symbol.toLowerCase(), quantity);
-            return  {
-                open:price,
-                quantity
-            }
+            result = await binance.futuresMarketSell(this.#symbol.toLowerCase(), fixedQuantity);
+        }
+
+        if(result.code && result.code != 200) {
+            this.#websocket.close();
+            throw Error(`Could open position ${side} ${fixedQuantity} : ${JSON.stringify(result)}`);
+        }
+        return  {
+            open:price,
+            quantity:fixedQuantity
         }
     }
 

@@ -36,6 +36,8 @@ class MartingaleSyncStrategy extends EventEmmiter {
     lock = false;
     lockcount = 0;
 
+    logPriceCounter = 0;
+
     //----------------
     
     constructor(params) {
@@ -70,6 +72,22 @@ class MartingaleSyncStrategy extends EventEmmiter {
         }
     }
 
+    logPrice = async (markPrice, currentTime) => {
+        this.logPriceCounter++;
+
+        let log = 'a';
+        log += `${currentTime} ${markPrice} - next long : ${this.getNextLongPrice()} - next short : ${this.getNextShortPrice()}`;
+
+
+        if (this.logPriceCounter == 10) {
+            const balanceAndPnl = await this.binanceService.getBalanceAndPnl();
+            log += ` - balance : ${balanceAndPnl.balance} - pnl : ${balanceAndPnl.pnl} - target : ${this.getTargetPnl()}`;
+            this.logPriceCounter = 0;
+        }
+
+        console.log(log);
+    }
+
 
     start = () => {
         let line = 0;
@@ -88,6 +106,8 @@ class MartingaleSyncStrategy extends EventEmmiter {
 
             let markPrice = parseFloat(e.markPrice);
             let currentTime = new Date(e.time);
+
+            await this.logPrice(markPrice, currentTime);
 
             if(!this.startTime) {
                 this.startTime = currentTime;
@@ -116,7 +136,7 @@ class MartingaleSyncStrategy extends EventEmmiter {
                 this.worstPNL = myPNL;
             }
 
-            if(myPNL >= this.targetPriceDistance * (this.positionQuantity)) {
+            if(myPNL >= this.getTargetPnl()) {
 
                 await this.closeAll(myPNL, currentTime);
 
@@ -156,6 +176,10 @@ class MartingaleSyncStrategy extends EventEmmiter {
 
 
     //----------------
+
+    getTargetPnl = ()  => {
+        return this.targetPriceDistance * (this.positionQuantity)
+    }
 
     checkStop = () => 
     {
@@ -267,11 +291,17 @@ class MartingaleSyncStrategy extends EventEmmiter {
     }
 
     getNextLongPrice = () => {
+        if(this.longs.length == 0 && this.shorts.length == 0) {
+            return 0;
+        }
         const maxLong = this.longs.length == 0 ? this.shorts[this.shorts.length - 1].open : this.longs[this.longs.length - 1].open;
         return maxLong + (this.targetPriceDistance);
     }
     
     getNextShortPrice = () => {
+        if(this.longs.length == 0 && this.shorts.length == 0) {
+            return 0;
+        }
         const minShort = this.shorts.length == 0 ? this.longs[this.longs.length - 1].open : this.shorts[this.shorts.length - 1].open;
         return minShort - (this.targetPriceDistance);
     }

@@ -3,7 +3,7 @@ const MartingaleSyncStrategy = require('./strategy/martingaleasync');
 const MartingaleStrategy = require('./strategy/martingale');
 
 const CONFIG = {
-    symbol: 'ETHUSDT',
+    symbol: 'AXSUSDT',
     leverage:10, 
     balance:1000,
     targetPercent:0.005,
