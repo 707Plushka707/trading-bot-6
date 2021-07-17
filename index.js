@@ -6,7 +6,8 @@ const CONFIG = {
     symbol: 'AXSUSDT',
     leverage:10, 
     balance:1000,
-    targetPercent:0.005,
+    targetPercent:0.004,
+    positionPercent:0.01,
     mode:'binance'
 }
 
