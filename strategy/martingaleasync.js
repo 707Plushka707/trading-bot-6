@@ -75,7 +75,7 @@ class MartingaleSyncStrategy extends EventEmmiter {
     logPrice = async (markPrice, currentTime) => {
         this.logPriceCounter++;
 
-        let log = 'a';
+        let log = '';
         log += `${currentTime} ${markPrice} - next long : ${this.getNextLongPrice()} - next short : ${this.getNextShortPrice()}`;
 
 
